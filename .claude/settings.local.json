@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(python --version)",
+      "PowerShell(py --version)",
+      "WebSearch",
+      "WebFetch(domain:www.data.go.kr)",
+      "WebFetch(domain:www.gimi9.com)",
+      "PowerShell($py = \"$env:LOCALAPPDATA\\\\Programs\\\\Python\\\\Python312\\\\python.exe\"; & $py -m venv \"C:\\\\Users\\\\user\\\\Desktop\\\\기환\\\\.venv\"; & \"C:\\\\Users\\\\user\\\\Desktop\\\\기환\\\\.venv\\\\Scripts\\\\python.exe\" -m pip install --upgrade pip --quiet; Write-Output \"venv ready\")",
+      "PowerShell($env:PYTHONIOENCODING=\"utf-8\"; & \"C:\\\\Users\\\\user\\\\Desktop\\\\기환\\\\.venv\\\\Scripts\\\\python.exe\" \"C:\\\\Users\\\\user\\\\Desktop\\\\기환\\\\smoke_test.py\")",
+      "PowerShell($env:PYTHONIOENCODING=\"utf-8\"; Start-Process -FilePath \"C:\\\\Users\\\\user\\\\Desktop\\\\기환\\\\.venv\\\\Scripts\\\\streamlit.exe\" -ArgumentList 'run','C:\\\\Users\\\\user\\\\Desktop\\\\기환\\\\app.py','--server.headless=true','--server.port=8765' -RedirectStandardOutput \"C:\\\\Users\\\\user\\\\Desktop\\\\기환\\\\_st_out.log\" -RedirectStandardError \"C:\\\\Users\\\\user\\\\Desktop\\\\기환\\\\_st_err.log\" -WindowStyle Hidden; Start-Sleep -Seconds 12; try { $r = Invoke-WebRequest -Uri \"http://localhost:8765/_stcore/health\" -UseBasicParsing -TimeoutSec 5; Write-Output \"HEALTH: $\\($r.StatusCode\\) $\\($r.Content\\)\" } catch { Write-Output \"HEALTH FAILED: $_\" })",
+      "Bash(\"/c/Users/user/Desktop/기환/.venv/Scripts/python.exe\" -c \"import json;d=json.load\\(open\\(r'C:/Users/user/Desktop/기환/src/region_codes.json',encoding='utf-8'\\)\\);print\\('시도',len\\(d\\),'시군구',sum\\(len\\(v['guguns']\\) for v in d.values\\(\\)\\)\\);[print\\(' ',k,len\\(v['guguns']\\),v['sido_code']\\) for k,v in d.items\\(\\)]\")",
+      "Bash(stdbuf -oL tail -n +1 -f \"/c/Users/user/AppData/Local/Temp/claude/C--Users-user-Desktop---/2917d809-f85e-4c3c-bb03-f2608bdf6ebb/tasks/b6gfrxkj0.output\")",
+      "PowerShell(Write-Output \"== competing python procs \\(exclude streamlit 11824/5796/7540\\):\"; Get-Process python -ErrorAction SilentlyContinue | Where-Object { $_.Id -notin 11824,5796,7540 } | Select-Object Id,CPU,StartTime; Remove-Item \"C:\\\\Users\\\\user\\\\Desktop\\\\기환\\\\data\\\\stat.csv\",\"C:\\\\Users\\\\user\\\\Desktop\\\\기환\\\\src\\\\region_codes.json\" -ErrorAction SilentlyContinue; Write-Output \"cleaned old outputs\")",
+      "mcp__Claude_Preview__preview_start"
+    ]
+  }
+}

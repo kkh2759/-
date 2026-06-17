@@ -1,0 +1,18 @@
+# 비밀 키 (절대 GitHub에 올리면 안 됨)
+.streamlit/secrets.toml
+
+# 파이썬
+__pycache__/
+*.pyc
+.venv/
+venv/
+env/
+
+# 캐시/임시
+.cache/
+data/cache/
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
