@@ -1,9 +1,9 @@
-# Streamlit 화면 테마 설정
+# Streamlit 화면 테마 설정 (한국도로교통공단 KOROAD 색감: 네이비 + 그린)
 [theme]
-primaryColor = "#E03131"          # 강조색(빨강 계열 - 사고/위험 느낌)
+primaryColor = "#1D3F8C"          # KOROAD 네이비(강조색)
 backgroundColor = "#FFFFFF"
-secondaryBackgroundColor = "#F1F3F5"
-textColor = "#212529"
+secondaryBackgroundColor = "#EEF2F9"   # 옅은 블루그레이
+textColor = "#1A2B4A"             # 진한 네이비 텍스트
 font = "sans serif"
 
 [server]

@@ -5,18 +5,48 @@
 API 키가 없으면 '샘플 데이터'로, 있으면 '실제 데이터'로 자동 전환됩니다.
 """
 
-import pandas as pd
+import os
 import plotly.express as px
 import streamlit as st
 import folium
 import streamlit.components.v1 as components
 
-from src import data_loader, api_client, config
+from src import data_loader, config
 
 # ── 페이지 기본 설정 ───────────────────────────────────────────
 st.set_page_config(page_title="교통사고 분석 대시보드", page_icon="🚦", layout="wide")
 
-st.title("🚦 교통사고 분석 대시보드")
+# 브랜드 색상(로고용) / 그래프용 강조 색상
+NAVY, GREEN = "#1D3F8C", "#43B02A"          # KOROAD 로고 색
+RED, ORANGE = "#E03131", "#F76707"          # 그래프 강조(눈에 띄는 색)
+WARM = ["#E03131", "#F76707", "#F59F00", "#FA5252", "#FF922B", "#FFC078"]  # 파이용
+HEAT = "OrRd"                               # 막대 그라데이션(값 클수록 진한 빨강)
+
+# ── 상단 헤더: 제목(좌) + 로고(우) ─────────────────────────────
+def _find_logo():
+    """assets 폴더에서 logo.png/jpg/jpeg/webp 중 있는 파일을 찾는다."""
+    base = os.path.join(os.path.dirname(__file__), "assets")
+    for ext in ("png", "jpg", "jpeg", "webp"):
+        p = os.path.join(base, f"logo.{ext}")
+        if os.path.exists(p):
+            return p
+    return None
+
+_LOGO = _find_logo()
+head_l, head_r = st.columns([3, 2])
+with head_l:
+    st.title("🚦 교통사고 분석 대시보드")
+with head_r:
+    if _LOGO:
+        # 사용자가 넣은 로고 이미지를 그대로 표시 (우측 상단)
+        st.image(_LOGO, use_container_width=True)
+    else:
+        st.markdown(
+            f"<div style='text-align:right; margin-top:18px; color:{NAVY}; "
+            f"font-weight:700; font-size:15px;'>로고 이미지를 "
+            f"<code>assets/logo.png</code> 로 저장하면 여기에 표시됩니다</div>",
+            unsafe_allow_html=True,
+        )
 
 # 데이터 출처 표시 (샘플 / 실제)
 _stat_real = data_loader.stat_source() == "real"
@@ -49,9 +79,9 @@ c2.metric("총 사망자수", f"{int(stat_f['사망자수'].sum()):,} 명")
 c3.metric("총 부상자수", f"{int(stat_f['부상자수'].sum()):,} 명")
 
 # ── 탭 구성 ────────────────────────────────────────────────────
-tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
+tab1, tab2, tab3, tab4, tab5 = st.tabs([
     "📈 연도별 추이", "🗺️ 지역별 비교", "⚠️ 위험지역·치사율",
-    "🚗 사고유형·원인", "📍 다발지역 지도", "🔌 API 연결 테스트",
+    "🚗 사고유형·원인", "📍 다발지역 지도",
 ])
 
 # 1) 연도별 추이 ------------------------------------------------
@@ -61,9 +91,14 @@ with tab1:
     metric = st.radio("지표 선택", ["사고건수", "사망자수", "부상자수"], horizontal=True, key="t1")
     fig = px.line(by_year, x="연도", y=metric, markers=True,
                   title=f"연도별 {metric} 추이")
+    # 빨간 선 + 면적 채움 + 큰 마커 + 값 표시 → 더 시각적으로
+    fig.update_traces(line=dict(color=RED, width=4), marker=dict(size=11, color=RED),
+                      fill="tozeroy", fillcolor="rgba(224,49,49,0.15)",
+                      mode="lines+markers+text", text=by_year[metric],
+                      texttemplate="%{text:,}", textposition="top center")
     fig.update_xaxes(dtick=1)
     st.plotly_chart(fig, use_container_width=True)
-    st.dataframe(by_year, use_container_width=True)
+    st.dataframe(by_year, use_container_width=True, hide_index=True)
 
 # 2) 지역별 비교 ------------------------------------------------
 with tab2:
@@ -72,7 +107,9 @@ with tab2:
     metric = st.radio("지표 선택", ["사고건수", "사망자수", "부상자수"], horizontal=True, key="t2")
     by_sido = by_sido.sort_values(metric, ascending=True)
     fig = px.bar(by_sido, x=metric, y="시도", orientation="h",
-                 title=f"시도별 {metric}", text_auto=True)
+                 title=f"시도별 {metric}", text_auto=True,
+                 color=metric, color_continuous_scale=HEAT)
+    fig.update_layout(coloraxis_showscale=False)
     st.plotly_chart(fig, use_container_width=True)
 
 # 3) 위험지역·치사율 --------------------------------------------
@@ -89,10 +126,13 @@ with tab3:
     topn = c2.slider("표시 개수", 5, 30, 15, key="t3n")
     top = g.sort_values(metric, ascending=False).head(topn)
     fig = px.bar(top.sort_values(metric), x=metric, y="시군구", orientation="h",
-                 title=f"{metric} 상위 {topn}개 시군구", text_auto=True, height=520)
+                 title=f"{metric} 상위 {topn}개 시군구", text_auto=True, height=520,
+                 color=metric, color_continuous_scale=HEAT)
+    fig.update_layout(coloraxis_showscale=False)
     st.plotly_chart(fig, use_container_width=True)
     st.caption("치사율 = 사망자수 ÷ 사고건수 × 100. 기간 내 합계 기준.")
-    st.dataframe(g.sort_values(metric, ascending=False), use_container_width=True)
+    st.dataframe(g.sort_values(metric, ascending=False),
+                 use_container_width=True, hide_index=True)
 
 # 4) 사고유형·원인 ----------------------------------------------
 with tab4:
@@ -103,7 +143,9 @@ with tab4:
         by_type = stat_f[type_cols].sum().reset_index()
         by_type.columns = ["사고유형", "사고건수"]
         by_type = by_type[by_type["사고건수"] > 0]
-        fig = px.pie(by_type, names="사고유형", values="사고건수", title="사고유형 비율")
+        fig = px.pie(by_type, names="사고유형", values="사고건수", title="사고유형 비율",
+                     color_discrete_sequence=WARM, hole=0.35)
+        fig.update_traces(textinfo="percent+label", textfont_size=14)
         st.plotly_chart(fig, use_container_width=True)
     with colB:
         viol_cols = [c for c in config.VIOLATION_LABELS if c in stat_f.columns]
@@ -111,7 +153,9 @@ with tab4:
         by_v.columns = ["법규위반", "사고건수"]
         by_v = by_v[by_v["사고건수"] > 0].sort_values("사고건수", ascending=True)
         fig = px.bar(by_v, x="사고건수", y="법규위반", orientation="h",
-                     title="법규위반(원인)별 사고건수", text_auto=True)
+                     title="법규위반(원인)별 사고건수", text_auto=True,
+                     color="사고건수", color_continuous_scale="Oranges")
+        fig.update_layout(coloraxis_showscale=False)
         st.plotly_chart(fig, use_container_width=True)
 
 # 5) 다발지역 지도 ----------------------------------------------
@@ -135,26 +179,10 @@ with tab5:
                 location=[r["위도"], r["경도"]],
                 radius=min(radius, 25),
                 popup=folium.Popup(popup, max_width=300),
-                color="#E03131", fill=True, fill_opacity=0.5,
+                color=RED, fill=True, fill_color=RED, fill_opacity=0.55,
             ).add_to(m)
         # st_folium 은 탭 안에서 렌더링이 불안정하여 정적 HTML 로 표출
         components.html(m._repr_html_(), height=560)
-
-# 6) API 연결 테스트 --------------------------------------------
-with tab6:
-    st.subheader("🔌 API 연결 테스트")
-    st.write("발급받은 키가 제대로 동작하는지, 응답 필드명이 무엇인지 직접 확인하는 곳입니다.")
-    if api_client.get_api_key() is None:
-        st.error("아직 API 키가 없습니다. `.streamlit/secrets.toml` 에 TAAS_API_KEY 를 넣어주세요.")
-    else:
-        year = st.selectbox("연도", config.YEARS, index=len(config.YEARS) - 1)
-        sido = st.selectbox("시도", config.SIDO_LIST, format_func=lambda x: x["name"])
-        if st.button("통계 API 호출해 보기"):
-            res = api_client.raw_probe(config.ENDPOINT_STAT, {
-                "searchYearCd": year, "siDo": sido["code"], "numOfRows": 5, "pageNo": 1,
-            })
-            st.write("상태코드:", res["status_code"])
-            st.code(res["body"], language="json")
 
 st.sidebar.markdown("---")
 st.sidebar.caption("데이터: 도로교통공단 / 공공데이터포털(data.go.kr)")
